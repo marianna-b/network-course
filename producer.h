@@ -5,11 +5,12 @@
 
 class producer {
 public:
-    producer(unsigned short port);
+    producer(std::string, unsigned short port);
     void start(std::string);
 
 private:
     unsigned short port;
+    std::string ip;
 };
 
 

@@ -19,7 +19,8 @@ std::mutex mtx;
 io_service io_service1;
 string result;
 
-consumer::consumer(unsigned short port) {
+consumer::consumer(string ip, unsigned short port) {
+    this->ip = ip;
     this->port = port;
 }
 
@@ -66,8 +67,10 @@ void process_request_consumer(dns* dns_service, tcp::socket *socket_ptr) {
     cout << file << endl;
     vector<dns_entry> list;
     {
+        dns_service->get_nodes();
+        sleep(3);
         std::lock_guard<std::mutex> lock(mtx);
-        list = dns_service->get_nodes();
+        list = dns_service->current;
     }
     cout << "Producers: " << list.size() << endl;
     thread_group senders;
@@ -92,7 +95,7 @@ void consumer::start(std::string name) {
     acceptor.bind(endpoint);
     acceptor.listen();
 
-    dns* dns_service = new dns(name, false, port);
+    dns* dns_service = new dns(name, false, ip, port);
     dns_service->get_nodes();
 
     for (int i = 0; i < 100; i++) {

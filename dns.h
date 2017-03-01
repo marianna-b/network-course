@@ -11,16 +11,17 @@
 
 class dns {
 public:
-    dns(std::string name, bool is_prod, unsigned short port):name(name),is_prod(is_prod), port(port){};
-    std::vector<dns_entry> get_nodes();
+    dns(std::string name, bool is_prod, std::string ip, unsigned short port):name(name),is_prod(is_prod), ip(ip), port(port){};
+    void get_nodes();
+    std::vector<dns_entry> current;
 
 private:
     void send_request();
     void send_response(unsigned int, boost::asio::ip::udp::endpoint&, boost::asio::ip::udp::endpoint&);
 
     std::string name;
+    std::string ip;
     bool is_prod;
-    std::vector<dns_entry> current;
     int last_request = -1;
     std::mutex mtx;
     unsigned short port;

@@ -15,8 +15,9 @@ using namespace boost;
 using namespace boost::asio;
 using namespace boost::asio::ip;
 
-producer::producer(unsigned short port) {
+producer::producer(string ip, unsigned short port) {
     this->port = port;
+    this->ip = ip;
 }
 
 bool find_file(string file) {
@@ -79,7 +80,7 @@ void producer::start(string name) {
     acceptor.set_option(tcp::acceptor::reuse_address(true));
     acceptor.bind(endpoint);
     acceptor.listen();
-    dns* dns_service2 = new dns(name, true, port);
+    dns* dns_service2 = new dns(name, true, ip, port);
     dns_service2->get_nodes();
     for (;;) {
         tcp::socket* socket = new tcp::socket((io_service2));

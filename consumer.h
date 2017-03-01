@@ -3,15 +3,17 @@
 
 
 #include "dns.h"
+#include <string>
 
 class consumer {
 
 public:
-    consumer(unsigned short port);
+    consumer(std::string ip, unsigned short port);
     void start(std::string);
 
 private:
     unsigned short port;
+    std::string ip;
 };
 
 

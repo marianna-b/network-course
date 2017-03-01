@@ -60,11 +60,7 @@ void dns::send_response(unsigned int seqnum, udp::endpoint& sender_endpoint, udp
     udp::socket socket(io_service2, local_endpoint.protocol());
     int len = 6;
     vector<dns_entry> tmp;
-    {
-        std::lock_guard<std::mutex> lock(mtx);
-        tmp = current;
-    }
-    tmp.push_back(dns_entry(local_endpoint.address().to_string(), this->port, this->is_prod, this->name));
+    tmp.push_back(dns_entry(this->ip, this->port, this->is_prod, this->name));
     int j = 0;
     for (j; j < tmp.size() && len < 1440; ++j) {
         len += 8 + tmp[j].name.size();
@@ -115,7 +111,7 @@ void dns::send_request() {
     }
     udp::endpoint endpoint(address::from_string(group_ip), group_port);
     udp::socket* socket = new udp::socket(io_service2, endpoint.protocol());
-    cout << "Sent request from" << socket->local_endpoint().address().to_string() << " " << socket->local_endpoint().port() << endl;
+    cout << "Sent request from" << this->ip << " " << socket->local_endpoint().port() << endl;
 
     char buf[6];
     buf[0] = 0;
@@ -131,14 +127,15 @@ void dns::send_request() {
 
     cout << "Waiting for responses" << endl;
     dns_threads.create_thread([this, buf, socket] () { this->process_response(socket, now_mils()); });
-    sleep(3);
 }
 
 
 void dns::process_response(udp::socket* socket, int time) {
     char buf[1440];
-    while (now_mils() - time < 3000) {
-        int loaded = 0;
+    int count = 0;
+    int loaded = 0;
+    while (count < 10) {
+        count++;
         while (loaded < 6)
             loaded += socket->receive(buffer(buf + loaded, (size_t) (1440 - loaded)));
         cout << "Response received" << endl;
@@ -155,6 +152,7 @@ void dns::process_response(udp::socket* socket, int time) {
         }
         int i = 6;
         unsigned int answers = toint(buf[5], 0, 0, 0);
+        cout << "Amount of items " << answers << endl;
         for (int j = 0; j < answers && i < 1440; ++j) {
             while (loaded < i + 8) {
                 loaded += socket->receive(buffer(buf + loaded, (size_t) (1440 - loaded)));
@@ -164,7 +162,7 @@ void dns::process_response(udp::socket* socket, int time) {
             unsigned short port = (unsigned short) toint_be(0, 0, buf[i], buf[i + 1]);
             cout << "Port bytes" << buf[i] << " " << buf[i + 1] << endl;
             i += 2;
-            is_prod = buf[i] == 2;
+            bool isprod = buf[i] == 2;
             i++;
             unsigned int length = toint(buf[i], 0, 0, 0);
             i++;
@@ -172,19 +170,25 @@ void dns::process_response(udp::socket* socket, int time) {
             while (loaded < i + length) {
                 loaded += socket->receive(buffer(buf + loaded, (size_t) (1440 - loaded)));
             }
-            if (loaded > i + length) {
-                cout << "Loaded some from next response " << endl;
-                copy_n(buf + i + loaded, loaded - i - length, buf);
-                loaded -= i + length;
-            }
             string name(buf + i, length);
-            dns_entry entry = dns_entry(ip, port, is_prod, name);
+            i += length;
+
+            dns_entry entry = dns_entry(ip, port, isprod, name);
             cout << ip << " " << port << " " << is_prod << " " << length << " " << name << endl;
             {
                 std::lock_guard<std::mutex> lock(mtx);
-                //if (std::find(current.begin(), current.end(), entry) == current.end())
+                if (std::find(current.begin(), current.end(), entry) == current.end()) {
+                    cout << "Added entry" << endl;
                     current.push_back(entry);
+                }
             }
+        }
+        if (loaded > i) {
+            cout << "Loaded some from next response " << endl;
+            copy_n(buf + i, loaded - i, buf);
+            loaded -= i;
+        } else {
+            loaded = 0;
         }
     }
 }
@@ -197,15 +201,12 @@ void dns::process_request(boost::array<char, 1440> buf, udp::endpoint sender, ud
     send_response(this_seq_num, sender, local);
 }
 
-vector<dns_entry> dns::get_nodes() {
+void dns::get_nodes() {
     if (last_request == -1) {
         dns_threads.create_thread([this]() { this->listen_dns(); });
     }
-    int curr = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    if (last_request == -1 || curr - last_request > timeout_mill) {
-        send_request();
+    if (last_request == -1 || now_mils() - last_request > timeout_mill) {
         last_request = now_mils();
+        send_request();
     }
-    std::lock_guard<std::mutex> lock(mtx);
-    return current;
 }
