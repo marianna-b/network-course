@@ -1,3 +1,6 @@
+*
+!*.*
+
 # Prerequisites
 *.d
 
@@ -30,3 +33,8 @@
 *.exe
 *.out
 *.app
+
+*.cmake
+.idea
+CMakeFiles
+CMakeCache.txt
