@@ -2,10 +2,10 @@
 
 using namespace std;
 
-dns_entry::dns_entry(string ip, unsigned short port, bool is_prod, string name) {
+dns_entry::dns_entry(string ip, unsigned short port, char flag, string name) {
     this->ip = ip;
     this->port = port;
-    this->is_prod = is_prod;
+    this->flag = flag;
     this->name = name;
 }
 

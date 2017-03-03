@@ -60,7 +60,7 @@ void dns::send_response(unsigned int seqnum, udp::endpoint& sender_endpoint, udp
     udp::socket socket(io_service2, local_endpoint.protocol());
     int len = 6;
     vector<dns_entry> tmp;
-    tmp.push_back(dns_entry(this->ip, this->port, this->is_prod, this->name));
+    tmp.push_back(dns_entry(this->ip, this->port, this->flag, this->name));
     int j = 0;
     for (j; j < tmp.size() && len < 1440; ++j) {
         len += 8 + tmp[j].name.size();
@@ -74,7 +74,7 @@ void dns::send_response(unsigned int seqnum, udp::endpoint& sender_endpoint, udp
         j--;
 
     for (int k = 0; k < j; ++k) {
-        cout << tmp[k].ip << " " << tmp[k].port << " " << tmp[k].is_prod << " " << tmp[k].name << endl;
+        cout << tmp[k].ip << " " << tmp[k].port << " " << tmp[k].flag << " " << tmp[k].name << endl;
         tobytes_be(tmp[k].ip, buf + i);
         i += 4;
         char b[4];
@@ -83,10 +83,7 @@ void dns::send_response(unsigned int seqnum, udp::endpoint& sender_endpoint, udp
         buf[i + 1] = b[3];
         cout << "Port bytes" << buf[i] << " " << buf[i + 1] << endl;
         i += 2;
-        if (tmp[k].is_prod)
-            buf[i] = 2;
-        else
-            buf[i] = 1;
+        buf[i] = tmp[k].flag;
         i++;
         buf[i] = (char) (tmp[k].name.size() & 0xFF);
         i++;
@@ -162,7 +159,7 @@ void dns::process_response(udp::socket* socket, int time) {
             unsigned short port = (unsigned short) toint_be(0, 0, buf[i], buf[i + 1]);
             cout << "Port bytes" << buf[i] << " " << buf[i + 1] << endl;
             i += 2;
-            bool isprod = buf[i] == 2;
+            char f = buf[i];
             i++;
             unsigned int length = toint(buf[i], 0, 0, 0);
             i++;
@@ -173,8 +170,8 @@ void dns::process_response(udp::socket* socket, int time) {
             string name(buf + i, length);
             i += length;
 
-            dns_entry entry = dns_entry(ip, port, isprod, name);
-            cout << ip << " " << port << " " << is_prod << " " << length << " " << name << endl;
+            dns_entry entry = dns_entry(ip, port, f, name);
+            cout << ip << " " << port << " " << f << " " << length << " " << name << endl;
             {
                 std::lock_guard<std::mutex> lock(mtx);
                 if (std::find(current.begin(), current.end(), entry) == current.end()) {

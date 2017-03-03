@@ -11,7 +11,7 @@
 
 class dns {
 public:
-    dns(std::string name, bool is_prod, std::string ip, unsigned short port):name(name),is_prod(is_prod), ip(ip), port(port){};
+    dns(std::string name, char flag, std::string ip, unsigned short port):name(name), flag(flag), ip(ip), port(port){};
     void get_nodes();
     std::vector<dns_entry> current;
 
@@ -21,7 +21,7 @@ private:
 
     std::string name;
     std::string ip;
-    bool is_prod;
+    char flag;
     int last_request = -1;
     std::mutex mtx;
     unsigned short port;

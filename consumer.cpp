@@ -76,7 +76,7 @@ void process_request_consumer(dns* dns_service, tcp::socket *socket_ptr) {
     thread_group senders;
     for (int i = 0; i < list.size(); i++) {
 
-        if (list[i].is_prod) {
+        if (list[i].flag == 2) {
             dns_entry e = list[i];
             senders.create_thread([e, file]() { save_file(e, file); });
         }
@@ -95,7 +95,7 @@ void consumer::start(std::string name) {
     acceptor.bind(endpoint);
     acceptor.listen();
 
-    dns* dns_service = new dns(name, false, ip, port);
+    dns* dns_service = new dns(name, 1, ip, port);
     dns_service->get_nodes();
 
     for (int i = 0; i < 100; i++) {
