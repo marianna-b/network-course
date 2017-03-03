@@ -1,1 +1,0 @@
-/usr/bin/c++   -g   CMakeFiles/nets.dir/main.cpp.o CMakeFiles/nets.dir/dns.cpp.o CMakeFiles/nets.dir/consumer.cpp.o CMakeFiles/nets.dir/producer.cpp.o CMakeFiles/nets.dir/utils.cpp.o CMakeFiles/nets.dir/dns_entry.cpp.o  -o nets /usr/lib64/libboost_thread.so /usr/lib64/libboost_system.so 
