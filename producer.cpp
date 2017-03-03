@@ -80,7 +80,7 @@ void producer::start(string name) {
     acceptor.set_option(tcp::acceptor::reuse_address(true));
     acceptor.bind(endpoint);
     acceptor.listen();
-    dns* dns_service2 = new dns(name, 2, ip, port);
+    dns* dns_service2 = new dns(name, 2, ip, port, 0);
     dns_service2->get_nodes();
     for (int i = 0; i < 100; i++) {
         tcp::socket* socket = new tcp::socket((io_service2));

@@ -9,8 +9,8 @@ public:
     std::string ip;
     unsigned short port;
     std::string name;
-    char flag;
-    unsigned char thread_count;
+    char flag = 0;
+    unsigned char thread_count = 0;
 
     bool operator==(dns_entry);
 };

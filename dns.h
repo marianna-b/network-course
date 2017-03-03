@@ -11,12 +11,13 @@
 
 class dns {
 public:
-    dns(std::string name, char flag, std::string ip, unsigned short port):name(name), flag(flag), ip(ip), port(port){};
+    dns(std::string name, char flag, std::string ip, unsigned short port, unsigned char t):name(name), flag(flag), ip(ip), port(port), thread_count(t){};
     void get_nodes();
     std::vector<dns_entry> current;
+    void send_request();
+    void set_thread_count(unsigned char);
 
 private:
-    void send_request();
     void send_response(unsigned int, boost::asio::ip::udp::endpoint&, boost::asio::ip::udp::endpoint&);
 
     std::string name;

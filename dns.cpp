@@ -43,7 +43,6 @@ void dns::listen_dns() {
 
         auto len = socket.receive_from(buffer(buf), sender_endpoint);
         cout << "Received datagram " << len << " " << sender_endpoint.address().to_string() << " " << sender_endpoint.port() << endl;
-        cout << "Local endpoint " << socket.local_endpoint().address().to_string() << " " << socket.local_endpoint().port() << endl;
         if (buf[0] == 0) {
             udp::endpoint local_endpoint = socket.local_endpoint();
             dns_threads.create_thread([this, buf, sender_endpoint, local_endpoint]()
@@ -60,7 +59,10 @@ void dns::send_response(unsigned int seqnum, udp::endpoint& sender_endpoint, udp
     udp::socket socket(io_service2, local_endpoint.protocol());
     int len = 6;
     vector<dns_entry> tmp;
-    tmp.push_back(dns_entry(this->ip, this->port, this->flag, this->name, this->thread_count));
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        tmp.push_back(dns_entry(this->ip, this->port, this->flag, this->name, this->thread_count));
+    }
     int j = 0;
     for (j; j < tmp.size() && len < 1440; ++j) {
         len += 8 + tmp[j].name.size();
@@ -81,7 +83,6 @@ void dns::send_response(unsigned int seqnum, udp::endpoint& sender_endpoint, udp
         tobytes_be(tmp[k].port, b);
         buf[i] = b[2];
         buf[i + 1] = b[3];
-        cout << "Port bytes" << buf[i] << " " << buf[i + 1] << endl;
         i += 2;
         buf[i] = tmp[k].flag;
         i++;
@@ -113,7 +114,7 @@ void dns::send_request() {
     }
     udp::endpoint endpoint(address::from_string(group_ip), group_port);
     udp::socket* socket = new udp::socket(io_service2, endpoint.protocol());
-    cout << "Sent request from" << this->ip << " " << socket->local_endpoint().port() << endl;
+    cout << "Sent request" << endl;
 
     char buf[6];
     buf[0] = 0;
@@ -123,7 +124,7 @@ void dns::send_request() {
     tobytes((unsigned int) sn, buf + 1);
     buf[5] = 0;
 
-    std::lock_guard<std::mutex> lock(mtx);
+    //std::lock_guard<std::mutex> lock(mtx);
     curr_seq_num = sn;
     socket->send_to(buffer(buf, 6), endpoint);
 
@@ -154,7 +155,7 @@ void dns::process_response(udp::socket* socket, int time) {
         }
         int i = 6;
         unsigned int answers = toint(buf[5], 0, 0, 0);
-        cout << "Amount of items " << answers << endl;
+        //cout << "Amount of items " << answers << endl;
         for (int j = 0; j < answers && i < 1440; ++j) {
             while (loaded < i + 8) {
                 loaded += socket->receive(buffer(buf + loaded, (size_t) (1440 - loaded)));
@@ -162,7 +163,6 @@ void dns::process_response(udp::socket* socket, int time) {
             string ip = getip(buf[i], buf[i + 1], buf[i + 2], buf[i + 3]);
             i += 4;
             unsigned short port = (unsigned short) toint_be(0, 0, buf[i], buf[i + 1]);
-            cout << "Port bytes" << buf[i] << " " << buf[i + 1] << endl;
             i += 2;
             char f = buf[i];
             i++;
@@ -184,10 +184,7 @@ void dns::process_response(udp::socket* socket, int time) {
             cout << ip << " " << port << " " << f << " " << length << " " << name << endl;
             {
                 std::lock_guard<std::mutex> lock(mtx);
-                if (std::find(current.begin(), current.end(), entry) == current.end()) {
-                    cout << "Added entry" << endl;
-                    current.push_back(entry);
-                }
+                current.push_back(entry);
             }
         }
         if (loaded > i) {
@@ -215,5 +212,12 @@ void dns::get_nodes() {
     if (last_request == -1 || now_mils() - last_request > timeout_mill) {
         last_request = now_mils();
         send_request();
+    }
+}
+
+void dns::set_thread_count(unsigned char count) {
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        this->thread_count = count;
     }
 }

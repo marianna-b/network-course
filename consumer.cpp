@@ -95,7 +95,7 @@ void consumer::start(std::string name) {
     acceptor.bind(endpoint);
     acceptor.listen();
 
-    dns* dns_service = new dns(name, 1, ip, port);
+    dns* dns_service = new dns(name, 1, ip, port, 0);
     dns_service->get_nodes();
 
     for (int i = 0; i < 100; i++) {

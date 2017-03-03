@@ -5,11 +5,15 @@
 unsigned int toint(char* bytes) {
     return *((unsigned int*) bytes);
 }
+
+int tosigint(char* bytes) {
+    return *((int*) bytes);
+}
+
 unsigned int toint(char bytes0, char bytes1, char bytes2, char bytes3) {
     char b[4] = {bytes0, bytes1, bytes2, bytes3};
     return toint(b);
 }
-
 
 unsigned int toint_be(char* b) {
     return toint_be(b[0], b[1], b[2], b[3]);
@@ -22,6 +26,10 @@ unsigned int toint_be(char bytes0, char bytes1, char bytes2, char bytes3) {
 
 void tobytes(unsigned int nint, char* res) {
     *((unsigned int*) res) = nint;
+}
+
+void tobytessig(int nint, char* res) {
+    *((int*) res) = nint;
 }
 
 std::string getip(char* bytes) {
