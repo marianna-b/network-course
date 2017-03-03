@@ -22,6 +22,7 @@ private:
     std::string name;
     std::string ip;
     char flag;
+    unsigned char thread_count;
     int last_request = -1;
     std::mutex mtx;
     unsigned short port;

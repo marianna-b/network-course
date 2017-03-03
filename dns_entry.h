@@ -5,11 +5,12 @@
 
 struct dns_entry {
 public:
-    dns_entry(std::string, unsigned short, char, std::string);
+    dns_entry(std::string, unsigned short, char, std::string, unsigned char);
     std::string ip;
     unsigned short port;
     std::string name;
     char flag;
+    unsigned char thread_count;
 
     bool operator==(dns_entry);
 };

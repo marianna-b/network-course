@@ -60,7 +60,7 @@ void dns::send_response(unsigned int seqnum, udp::endpoint& sender_endpoint, udp
     udp::socket socket(io_service2, local_endpoint.protocol());
     int len = 6;
     vector<dns_entry> tmp;
-    tmp.push_back(dns_entry(this->ip, this->port, this->flag, this->name));
+    tmp.push_back(dns_entry(this->ip, this->port, this->flag, this->name, this->thread_count));
     int j = 0;
     for (j; j < tmp.size() && len < 1440; ++j) {
         len += 8 + tmp[j].name.size();
@@ -89,6 +89,11 @@ void dns::send_response(unsigned int seqnum, udp::endpoint& sender_endpoint, udp
         i++;
         for (int l = 0; l < tmp[k].name.size(); ++l) {
             buf[i] = tmp[k].name[l];
+            i++;
+        }
+        if (flag == 3) {
+            len++;
+            buf[i] = tmp[k].thread_count;
             i++;
         }
     }
@@ -169,8 +174,13 @@ void dns::process_response(udp::socket* socket, int time) {
             }
             string name(buf + i, length);
             i += length;
+            unsigned char threadcount = 0;
+            if (f == 3) {
+                threadcount = (unsigned char) buf[i];
+                i++;
+            }
 
-            dns_entry entry = dns_entry(ip, port, f, name);
+            dns_entry entry = dns_entry(ip, port, f, name, threadcount);
             cout << ip << " " << port << " " << f << " " << length << " " << name << endl;
             {
                 std::lock_guard<std::mutex> lock(mtx);
