@@ -21,7 +21,7 @@ private:
     void process_request_executor(dns *,
         boost::asio::basic_stream_socket <boost::asio::ip::tcp, boost::asio::stream_socket_service<boost::asio::ip::tcp>> *);
 
-    void start_thread(dns *dns_service);
+    bool start_thread(dns *dns_service);
 
     void finish_thread(dns *dns_service);
 };

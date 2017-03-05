@@ -15,7 +15,7 @@ int main() {
     if (ip == "client") {
         executor_client client;
         string res;
-        while ((res = client.execute("Some amazing code")) == "")
+        while ((res = client.execute("return 595")) == "")
             sleep(3);
         cout << res << endl;
         return 0;

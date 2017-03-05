@@ -7,6 +7,7 @@
 #include <boost/algorithm/string.hpp>
 #include <mutex>
 #include <fstream>
+#include <lua5.1/lua.hpp>
 
 using namespace std;
 using namespace boost;
@@ -17,9 +18,42 @@ boost::asio::io_service io_service3;
 boost::thread_group executor_threads;
 std::mutex mtx2;
 
-string execute_lua_code(string code) {
-    sleep(20);
-    return "Some amazing reslult";
+void execute_lua_code(string code, tcp::socket *socket_ptr) {
+
+    int m1 = -1;
+    lua_State *L = luaL_newstate();
+    if (!L) {
+        char b[4];
+        tobytessig(m1, b);
+        write(*socket_ptr, buffer(b, 4), transfer_all());
+        return;
+    }
+
+    luaL_openlibs(L);
+    int lr = luaL_loadbuffer(L, code.c_str(), code.size(), "networked code");
+
+    if (lr == 0) {
+        int pcr = lua_pcall(L, 0, 1, 0);
+        if (pcr == 0) {
+            size_t ssz = 0;
+            const char *res = lua_tolstring(L, 0, &ssz);
+            char b[4];
+            tobytessig((int) ssz, b);
+            write(*socket_ptr, buffer(b, 4), transfer_all());
+
+            if (res)
+                write(*socket_ptr, buffer(res, ssz), transfer_all());
+        } else {
+            char b[4];
+            tobytessig(m1, b);
+            write(*socket_ptr, buffer(b, 4), transfer_all());
+        }
+    } else {
+        char b[4];
+        tobytessig(m1, b);
+        write(*socket_ptr, buffer(b, 4), transfer_all());
+    }
+    lua_close(L);
 }
 
 
@@ -32,12 +66,15 @@ void lua_executor::finish_thread(dns* dns_service) {
    }
 }
 
-void lua_executor::start_thread(dns* dns_service) {
+bool lua_executor::start_thread(dns* dns_service) {
     {
         std::lock_guard<std::mutex> lock(mtx2);
+        if (used_threads == threads)
+            return false;
         used_threads++;
         dns_service->set_thread_count(threads - used_threads);
-   }
+    }
+    return true;
 }
 
 void lua_executor::process_request_executor(dns* dns_service, tcp::socket *socket_ptr) {
@@ -56,15 +93,12 @@ void lua_executor::process_request_executor(dns* dns_service, tcp::socket *socke
     string lua_code = string(str, lenfile);
     cout << lua_code << endl;
 
-    start_thread(dns_service);
-    executor_threads.create_thread([this, dns_service, lua_code, socket_ptr]() {
-        string result = execute_lua_code(lua_code);
-        cout << result << endl;
+    while (!start_thread(dns_service))
+        sleep(3);
 
-        char b[4];
-        tobytessig((int) result.size(), b);
-        write(*socket_ptr, buffer(b, 4), transfer_all());
-        write(*socket_ptr, buffer(result, result.size()), transfer_all());
+    executor_threads.create_thread([this, dns_service, lua_code, socket_ptr]() {
+        execute_lua_code(lua_code, socket_ptr);
+
         this->finish_thread(dns_service);
         sleep(10);
         delete socket_ptr;
