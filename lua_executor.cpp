@@ -33,7 +33,9 @@ void execute_lua_code(string code, tcp::socket *socket_ptr) {
     int lr = luaL_loadbuffer(L, code.c_str(), code.size(), "networked code");
 
     if (lr == 0) {
+        int startT = now_mils();
         int pcr = lua_pcall(L, 0, 1, 0);
+        int endT = now_mils();
         if (pcr == 0) {
             size_t ssz = 0;
             const char *res = lua_tolstring(L, 0, &ssz);
@@ -41,8 +43,11 @@ void execute_lua_code(string code, tcp::socket *socket_ptr) {
             tobytessig((int) ssz, b);
             write(*socket_ptr, buffer(b, 4), transfer_all());
 
-            if (res)
+            if (res) {
+                tobytes((unsigned int) (endT - startT), b);
+                write(*socket_ptr, buffer(b, 4), transfer_all());
                 write(*socket_ptr, buffer(res, ssz), transfer_all());
+            }
         } else {
             char b[4];
             tobytessig(m1, b);

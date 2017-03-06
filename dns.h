@@ -9,6 +9,9 @@
 #include <boost/array.hpp>
 #include "dns_entry.h"
 
+
+int now_mils();
+
 class dns {
 public:
     dns(std::string name, char flag, std::string ip, unsigned short port, unsigned char t):name(name), flag(flag), ip(ip), port(port), thread_count(t){};

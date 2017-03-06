@@ -37,7 +37,8 @@ std::string executor_client::execute(std::string code) {
     cout << list[idx].name << endl;
     tcp::socket socket(io_service2);
     socket.connect(tcp::endpoint(address::from_string(list[idx].ip), list[idx].port));
-
+    cout << "Connected" << endl;
+    int startT = now_mils();
     char b[4];
     tobytes((int) code.size(), b);
     write(socket, buffer(b, 4), transfer_all());
@@ -48,13 +49,17 @@ std::string executor_client::execute(std::string code) {
     size_t bytes_read = read(socket, buffer(len, 4), transfer_all());
     if (bytes_read < 4)
         return "error";
-
     int lenstr = tosigint(len);
-    cout << lenstr << endl;
+    bytes_read = read(socket, buffer(len, 4), transfer_all());
+    if (bytes_read < 4)
+        return "error";
+    int time = toint(len);
+
+
     if (lenstr == -1)
         return "error";
     char str[lenstr];
     size_t lenfile = read(socket, buffer(str, (size_t) lenstr), transfer_all());
-
+    cout << lenstr << " " << time << " " << now_mils() - startT <<  endl;
     return string(str, lenfile);
 }
